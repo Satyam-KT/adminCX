@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .scrollable-tasks {
+            max-height: 80px; /* Height for 3 tasks */
+            overflow-y: auto;
+        }
+        .task-item {
+            margin-bottom: 5px;
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50; /* Keeps it on top of other content */
+            background-color: white; /* Ensure background color doesn't blend with content */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional: Add a slight shadow for better separation */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<div class="container mx-auto mt-10">
+    <h1 class="text-3xl font-bold text-center">Admin Panel</h1>
+
+    <!-- Admin Login Section -->
+    <div id="admin-login" class="max-w-md mx-auto mt-8 bg-white p-6 shadow rounded">
+        <h2 class="text-xl font-semibold text-center">Admin Login</h2>
+        <div id="login-error" class="hidden text-red-500 text-center mt-4"></div> <!-- Error message section -->
+        <input id="admin-username" type="text" placeholder="Username" class="w-full mt-4 p-2 border rounded">
+        <input id="admin-password" type="password" placeholder="Password" class="w-full mt-4 p-2 border rounded">
+        <button id="login-btn" class="bg-blue-500 text-white py-2 px-4 rounded mt-4 w-full">Login</button>
+    </div>
+
+    <!-- Admin Dashboard Section -->
+    <div id="admin-dashboard" class="hidden mt-10">
+        <div class="sticky-header bg-white p-4 flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-semibold">Interns Attendance & Tasks</h2>
+            <button id="logout-btn" class="bg-red-500 text-white py-2 px-4 rounded">Logout</button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="flex justify-center mt-4">
+            <input id="search-bar" type="text" placeholder="Search intern by name" 
+                class="w-full p-2 border rounded max-w-md" onkeyup="searchIntern(event)">
+            <button id="search-btn" class="ml-2 bg-blue-500 text-white py-2 px-4 rounded" onclick="searchIntern()">Search</button>
+        </div>
+
+        <div class="overflow-x-auto mt-8">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-800 text-white">
+                    <tr>
+                        <th class="py-2 px-4">S. no.</th>
+                        <th class="py-2 px-4">Intern ID</th>
+                        <th class="py-2 px-4">Start Date</th>
+                        <th class="py-2 px-4">Name</th>
+                        <th class="py-2 px-4">Attendance</th>
+                        <th class="py-2 px-4" style="width: 25%;">Tasks</th>
+                    </tr>
+                </thead>
+                <tbody id="attendance-table">
+                    <!-- Dynamic rows will be added here -->
+                </tbody>
+            </table>
+        </div>
+        <!-- <button id="logout-btn" class="bg-red-500 text-white py-2 px-4 rounded mt-4">Logout</button> -->
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const loginBtn = document.getElementById('login-btn');
+    const adminLoginSection = document.getElementById('admin-login');
+    const adminDashboardSection = document.getElementById('admin-dashboard');
+    const attendanceTable = document.getElementById('attendance-table');
+    const loginError = document.getElementById('login-error');
+
+    // Function to handle login
+    async function handleLogin() {
+        const usernameInput = document.getElementById('admin-username').value;
+        const passwordInput = document.getElementById('admin-password').value;
+
+        // Clear any previous error message
+        loginError.classList.add('hidden');
+        loginError.textContent = '';
+
+        try {
+            const response = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: usernameInput, password: passwordInput })
+            });
+
+            if (response.ok) {
+                const { token } = await response.json();
+                localStorage.setItem('authToken', token);
+                adminLoginSection.classList.add('hidden');
+                adminDashboardSection.classList.remove('hidden');
+                await fetchInternData();  // Fetch intern data from backend
+            } else {
+                // Display error message if login fails
+                loginError.textContent = 'Incorrect ID or password';
+                loginError.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error during login:', error);
+            // Display error message for network errors
+            loginError.textContent = 'Error occurred. Please try again later.';
+            loginError.classList.remove('hidden');
+        }
+    }
+
+    // Trigger login on clicking the login button
+    loginBtn.addEventListener('click', handleLogin);
+
+    // Trigger login on pressing "Enter" in either input field
+    document.getElementById('admin-username').addEventListener('keyup', function (event) {
+        if (event.key === 'Enter') {
+            handleLogin();
+        }
+    });
+
+    document.getElementById('admin-password').addEventListener('keyup', function (event) {
+        if (event.key === 'Enter') {
+            handleLogin();
+        }
+    });
+
+
+
+    async function fetchInternData() {
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch('/api/admin/index', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const internData = await response.json();
+                populateAttendanceTable(internData);
+            } else {
+                console.error('Failed to fetch intern data');
+            }
+        } catch (error) {
+            console.error('Error fetching intern data:', error);
+        }
+    }
+
+    function populateAttendanceTable(internData) {
+        attendanceTable.innerHTML = '';  // Clear previous data
+
+        internData.forEach((intern, index) => {
+            const row = document.createElement('tr');
+            row.classList.add('border-b');
+
+            // Serial Number Cell
+            const serialNumberCell = document.createElement('td');
+            serialNumberCell.classList.add('py-2', 'px-4');
+            serialNumberCell.textContent = index + 1;  // Serial number starts from 1
+
+            const internIdCell = document.createElement('td');
+            internIdCell.classList.add('py-2', 'px-4');
+            internIdCell.textContent = intern.internId;
+
+            const startDateCell = document.createElement('td');
+            startDateCell.classList.add('py-2', 'px-4');
+            startDateCell.textContent = new Date(intern.startDate).toLocaleDateString();
+
+            const nameCell = document.createElement('td');
+            nameCell.classList.add('py-2', 'px-4');
+            nameCell.textContent = intern.name;
+
+            const attendanceCell = document.createElement('td');
+            attendanceCell.classList.add('py-2', 'px-4');
+            const daysPalette = createDaysPalette(intern.startDate, intern.attendance);
+            attendanceCell.appendChild(daysPalette);
+
+            const tasksCell = document.createElement('td');
+            tasksCell.classList.add('py-2', 'px-4');
+            const taskList = createTaskList(intern.tasks);
+            tasksCell.appendChild(taskList);
+
+            row.appendChild(serialNumberCell);  // Add serial number cell
+            row.appendChild(internIdCell);
+            row.appendChild(startDateCell);
+            row.appendChild(nameCell);
+            row.appendChild(attendanceCell);
+            row.appendChild(tasksCell);
+
+            attendanceTable.appendChild(row);
+        });
+    }
+
+    function createDaysPalette(startDate, attendance) {
+        const daysPalette = document.createElement('div');
+        daysPalette.classList.add('grid', 'grid-cols-7', 'gap-2');
+
+        const start = new Date(startDate);
+        const today = new Date();
+        const daysSinceStart = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
+
+        for (let day = 1; day <= 28; day++) {
+            const dayCell = document.createElement('div');
+            dayCell.textContent = day;
+            dayCell.className = 'w-8 h-8 flex items-center justify-center border rounded';
+
+            if (day <= daysSinceStart && isAttendanceMarked(day, start, attendance)) {
+                dayCell.classList.add('bg-green-500', 'text-white');
+            } else {
+                dayCell.classList.add('bg-gray-200');
+            }
+
+            daysPalette.appendChild(dayCell);
+        }
+
+        return daysPalette;
+    }
+
+    function isAttendanceMarked(day, startDate, attendance) {
+        const currentDay = new Date(startDate);
+        currentDay.setDate(currentDay.getDate() + (day - 1));
+
+        return attendance.some(record => {
+            const attendanceDate = new Date(record.date);
+            return record.marked && attendanceDate.toDateString() === currentDay.toDateString();
+        });
+    }
+
+    function createTaskList(tasks) {
+        const taskList = document.createElement('div');
+        taskList.classList.add('scrollable-tasks', 'border', 'p-2', 'rounded');
+        
+        tasks.slice().reverse().forEach((task) => {
+            const taskItem = document.createElement('div');
+            taskItem.classList.add('task-item', 'text-sm');
+            taskItem.textContent = `${new Date(task.date).toLocaleDateString()}: ${task.description}`;
+            taskList.appendChild(taskItem);
+        });
+
+        return taskList;
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', function () {
+        localStorage.removeItem('authToken');  // Remove token from local storage
+        location.reload();  // Reload page to log out
+    });
+});
+
+function searchIntern(event) {
+    // Check if Enter key is pressed in the input field (optional)
+    // if (event && event.type === 'keyup' && event.key !== 'Enter') {
+    //     return;
+    // }
+
+    const searchInput = document.getElementById('search-bar').value.toLowerCase();
+    const rows = document.querySelectorAll('#attendance-table tr');
+
+    // Loop through each row to either show or hide based on the search input
+    rows.forEach(row => {
+        const nameCell = row.querySelector('td:nth-child(4)'); // Name is in the 4th column
+        if (nameCell) {
+            const name = nameCell.textContent.toLowerCase();
+
+            // If search input is empty, show all rows
+            if (searchInput === '') {
+                row.style.display = ''; // Show the row
+            } else if (name.includes(searchInput)) {
+                row.style.display = ''; // Show the row
+            } else {
+                row.style.display = 'none'; // Hide the row
+            }
+        }
+    });
+}
+
+</script>
+
+</body>
+</html>

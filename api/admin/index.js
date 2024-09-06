@@ -1,5 +1,5 @@
 import { authenticateToken } from './middleware';
-import Intern from '../../internModel.js';  // Adjust the path as needed
+import Intern from '../../models/internModel.js';  // Adjust the path as needed
 import { connectToDatabase } from '../utils/connectToDatabase.js';
 
 const calculateDaysPalette = (startDate, attendanceRecords) => {

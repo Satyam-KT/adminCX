@@ -136,7 +136,7 @@
     async function fetchInternData() {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('/api/admin/index', {
+            const response = await fetch('/api/admin/admin', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

@@ -1,7 +1,40 @@
-import { authenticateToken } from './middleware';
-import Intern from '../../models/internModel.js';  // Adjust the path as needed
+import jwt from 'jsonwebtoken';
+import Intern from '../../models/internModel.js'; // Adjust the path as needed
 import { connectToDatabase } from '../utils/connectToDatabase.js';
 
+const JWT_SECRET = 'abcde';
+
+// Middleware function for JWT authentication
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+
+    // If the authorization header is missing
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Authorization header missing' });
+    }
+
+    // Extract the token from the 'Bearer <token>' format
+    const token = authHeader.split(' ')[1];
+
+    // If the token is missing
+    if (!token) {
+        return res.status(401).json({ message: 'Token missing from header' });
+    }
+
+    // Verify the token
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            console.error('Token verification failed:', err); // Log error for debugging
+            return res.status(403).json({ message: 'Token verification failed' });
+        }
+
+        // Attach user to the request if token is valid
+        req.user = user;
+        next();
+    });
+};
+
+// Function to calculate the days palette
 const calculateDaysPalette = (startDate, attendanceRecords) => {
     const daysPalette = [];
     const start = new Date(startDate);
@@ -22,9 +55,10 @@ const calculateDaysPalette = (startDate, attendanceRecords) => {
     return daysPalette;
 };
 
+// Route handler for /api/admin/admin
 export default async function handler(req, res) {
     if (req.method === 'GET') {
-        await authenticateToken(req, res, async () => { // Apply the middleware here
+        authenticateToken(req, res, async () => { // Apply the middleware here
             try {
                 await connectToDatabase();
                 const interns = await Intern.find();

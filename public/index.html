@@ -283,6 +283,7 @@
         if (e.target.classList.contains('delete-btn')) {
             const internId = e.target.getAttribute('data-intern-id');
             const confirmation = confirm('Are you sure you want to delete this intern?');
+            console.log(internId);
             if (confirmation) {
                 try {
                     const response = await fetch(`/api/admin/delete/${internId}`, {

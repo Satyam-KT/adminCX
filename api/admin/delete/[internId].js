@@ -47,6 +47,7 @@ export const deleteIntern = async (req, res) => {
 // Route handler for admin actions
 export default async function handler(req, res) {
     console.log('Request Method:', req.method); // Log the request method
+    console.log('Request Params:', req.params);
     console.log('Request URL:', req.url); // Log the request URL
 
     if (req.method === 'DELETE') {

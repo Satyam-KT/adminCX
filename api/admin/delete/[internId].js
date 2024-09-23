@@ -46,6 +46,9 @@ export const deleteIntern = async (req, res) => {
 
 // Route handler for admin actions
 export default async function handler(req, res) {
+    console.log('Request Method:', req.method); // Log the request method
+    console.log('Request URL:', req.url); // Log the request URL
+
     if (req.method === 'DELETE') {
         authenticateToken(req, res, () => deleteIntern(req, res)); // Call deleteIntern with token authentication
     } else {
@@ -53,3 +56,4 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 }
+

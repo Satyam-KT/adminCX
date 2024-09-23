@@ -23,7 +23,7 @@ const authenticateToken = (req, res, next) => {
 export const deleteIntern = async (req, res) => {
     console.log('Request Params:', req.params); // Log the request params
 
-    const { internId } = req.params; // Get internId from URL parameters
+    const internId = req.params.internId; // Get internId from URL parameters
 
     if (!internId) {
         return res.status(400).json({ message: 'internId is required' });

@@ -19,8 +19,15 @@ const authenticateToken = (req, res, next) => {
 };
 
 // DELETE route handler for deleting an intern
+// DELETE route handler for deleting an intern
 export const deleteIntern = async (req, res) => {
+    console.log('Request Params:', req.params); // Log the request params
+
     const { internId } = req.params; // Get internId from URL parameters
+
+    if (!internId) {
+        return res.status(400).json({ message: 'internId is required' });
+    }
 
     try {
         await connectToDatabase(); // Connect to the database
@@ -35,6 +42,7 @@ export const deleteIntern = async (req, res) => {
         return res.status(500).json({ message: 'Error deleting intern', error });
     }
 };
+
 
 // Route handler for admin actions
 export default async function handler(req, res) {

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import Intern from '../../../models/internModel.js'; // Adjust the path as needed
-import { connectToDatabase } from '../utils/connectToDatabase.js';
+import { connectToDatabase } from '../../utils/connectToDatabase.js';
 
 const JWT_SECRET = 'abcde';
 
